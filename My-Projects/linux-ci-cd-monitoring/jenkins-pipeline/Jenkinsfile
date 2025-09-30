@@ -1,0 +1,38 @@
+pipeline {
+  agent any
+  environment {
+    MAVEN_HOME = tool 'Maven3'
+  }
+  stages {
+    stage('Checkout') {
+      steps { git url: 'https://github.com/<your-username>/sample-java-app.git', branch: 'main' }
+    }
+    stage('Build') {
+      steps { sh '${MAVEN_HOME}/bin/mvn clean package -DskipTests=false' }
+    }
+    stage('Unit Tests') {
+      steps { sh '${MAVEN_HOME}/bin/mvn test' }
+    }
+    stage('Static Code Analysis') {
+      steps {
+        withSonarQubeEnv('SonarQube') {
+          sh "${MAVEN_HOME}/bin/mvn sonar:sonar"
+        }
+      }
+    }
+    stage('Publish Artifact') {
+      steps {
+        echo 'Upload to Nexus'
+      }
+    }
+    stage('Deploy to Tomcat') {
+      steps {
+        sh 'scp target/*.war deploy@tomcat-server:/opt/tomcat/webapps/'
+      }
+    }
+  }
+  post {
+    success { mail to: 'smohammedrafi27@gmail.com', subject: "Build Success", body: "Pipeline succeeded" }
+    failure { mail to: 'smohammedrafi27@gmail.com', subject: "Build Failed", body: "Check Jenkins logs" }
+  }
+}

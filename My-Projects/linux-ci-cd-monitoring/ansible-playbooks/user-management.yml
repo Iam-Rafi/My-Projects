@@ -1,0 +1,30 @@
+- name: Add users and configure SSH keys
+  hosts: all
+  become: true
+  vars:
+    users:
+      - name: rafi
+        pubkey: ssh-rsa AAAA... your_public_key_here
+  tasks:
+    - name: Ensure users exist
+      user:
+        name: {{ item.name }}
+        state: present
+        shell: /bin/bash
+      loop: {{ users }}
+
+    - name: Create .ssh directory
+      file:
+        path: /home/{{ item.name }}/.ssh
+        state: directory
+        owner: {{ item.name }}
+        mode: '0700'
+      loop: {{ users }}
+
+    - name: Add authorized_keys
+      copy:
+        dest: /home/{{ item.name }}/.ssh/authorized_keys
+        content: {{ item.pubkey }}\n
+        owner: {{ item.name }}
+        mode: '0600'
+      loop: {{ users }}
